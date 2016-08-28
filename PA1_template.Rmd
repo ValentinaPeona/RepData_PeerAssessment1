@@ -1,25 +1,98 @@
 ---
-title: "Reproducible Research: Peer Assessment 1"
 output: 
-  html_document:
-    keep_md: true
+  html_document: 
+    keep_md: yes
 ---
-
+# Reproducible Research: Peer Assessment 1
 
 ## Loading and preprocessing the data
 
-
+```{r loadingdata}
+## Loading the plyr library
+library(plyr)
+## Loading the csv file
+data <- read.csv(file = "activity.csv", na.strings = "NA", colClasses = c("numeric", "Date", "numeric"))
+## Skipping na values in the steps column
+activity <- data[!is.na(data$steps),]
+```
 
 ## What is mean total number of steps taken per day?
 
+```{r histogram, error=FALSE}
+## Aggregating steps per date
+activity_sum <- ddply(activity, .(date),summarise, sum =sum(steps, na.rm=TRUE), mean = mean(steps, na.rm = TRUE), median = median(steps, na.rm = TRUE))
 
+## Displaying the histogram
+hist(x=activity_sum$sum, main = "Steps distribution", xlab = "Steps per day", ylab = "Frequency")
+
+## Loading xtable to display the table of results
+library(xtable)
+xt <- xtable(activity_sum[,c("mean","median")])
+print(xt, type="html")
+
+```
 
 ## What is the average daily activity pattern?
 
+```{r pattern}
+## Aggregating the data by interval
+activity_ts <- ddply(activity, .(interval), summarise, mean = mean(steps, na.rm = TRUE))
+plot(activity_ts$mean, type = "l", xlab = "interval", ylab = "steps averaged")
 
+## Get the maximum value
+maximum <- as.numeric(rownames(activity_ts[with(activity_ts, order(-mean)), ][1,]))
+```
+
+The interval with maximum number of steps is `r maximum`
 
 ## Imputing missing values
 
+```{r}
+## Calculating the number of values not available in the data set
+missing_steps <- sum(is.na(data$steps))
+```
 
+The number of missing steps values is `r missing_steps`
 
-## Are there differences in activity patterns between weekdays and weekends?
+Now we fill the missing values with zeros.
+
+```{r}
+## Filling na values
+data[is.na(data['steps']),c('steps')] <- 0
+
+## Creating data frame with aggregated data
+data_summ_filled <- ddply(data, .(date), summarise, sum = sum(steps, na.rm = TRUE), mean = mean(steps, na.rm = TRUE), median = median(steps, na.rm = TRUE))
+
+## Showing histogram
+hist(x=data_summ_filled$sum, main = "Steps distribution", xlab = "Steps per day", ylab = "Frequency")
+```
+
+As can be seen the shape of the histogram differs of the original shape when the na values are filled.
+
+Below is also shown the actual values and in general the average values of the mean of the number of steps have changed for the measurements.
+
+```{r table}
+## Displaying the table of mean and median with filled na
+xt_filled <- xtable(data_summ_filled[,c("mean","median")])
+
+print(xt_filled, type="html")
+```
+
+##Are there differences in activity patterns between weekdays and weekends?
+
+```{r weekends, fig.height = 6}
+## Adding a new column with the weekday_type factor
+## Sabato = Saturday and Domenica = Sunday in italian. Sorry for the inconvenience!
+
+data['weekday_type'] <- as.factor(ifelse(weekdays(as.Date(data$date)) %in% c('Sabato','Domenica'),"weekend","weekday"))
+
+## In a new data frame the steps are being aggregated by day of the week and interval
+data_summ_wd <- ddply(data, .(weekday_type, interval), summarise, mean = mean(steps))
+
+## Plot the time series obtained in a combined plot
+par(mfrow = c(2,1))
+plot(data_summ_wd[data_summ_wd$weekday_type == 'weekend', c('mean')], type = 'l', main = "Weekend", xlab = "Number of intervals per day (averaged)", ylab = "Number of steps")
+plot(data_summ_wd[data_summ_wd$weekday_type == 'weekday', c('mean')], type='l', main = "Weekday", xlab = "Number of intervals per day (averaged)", ylab = "Number of steps")
+```
+
+As can be seen in general, on the weekends the subject is more active during daylight time.
