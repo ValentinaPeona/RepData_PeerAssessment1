@@ -18,7 +18,7 @@ activity <- data[!is.na(data$steps),]
 
 ## What is mean total number of steps taken per day?
 
-```{r histogram, error=FALSE}
+```{r histogram, results = 'asis'}
 ## Aggregating steps per date
 activity_sum <- ddply(activity, .(date),summarise, sum =sum(steps, na.rm=TRUE), mean = mean(steps, na.rm = TRUE), median = median(steps, na.rm = TRUE))
 
@@ -71,7 +71,7 @@ As can be seen the shape of the histogram differs of the original shape when the
 
 Below is also shown the actual values and in general the average values of the mean of the number of steps have changed for the measurements.
 
-```{r table}
+```{r table, results = "asis"}
 ## Displaying the table of mean and median with filled na
 xt_filled <- xtable(data_summ_filled[,c("mean","median")])
 
